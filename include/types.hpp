@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <tuple>
 
 namespace stdx::details {
 
@@ -29,21 +30,21 @@ struct fixed_string {
                 data[i] = '\0';
             }
         }
+        data[N] = '\0';
     }
+    constexpr std::size_t size() const { return sizeof(data); }
 };
 
 // Шаблонный класс, хранящий fixed_string достаточной длины для хранения ошибки парсинга
 
 // ваш код здесь
-struct parse_error {};
+struct parse_error : fixed_string<64> {};
 
 // Шаблонный класс для хранения результатов парсинга
 
 template <typename... Ts>
 struct scan_result {
-// ваш код здесь
-// измените реализацию
-    int i;
+    std::tuple<Ts...> data;
 };
 
 } // namespace stdx::details
