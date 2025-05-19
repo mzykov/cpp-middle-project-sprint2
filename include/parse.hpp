@@ -4,26 +4,25 @@
 #include <concepts>
 #include <optional>
 #include <system_error>
+#include <string>
 
 #include "format_string.hpp"
 #include "types.hpp"
 
 namespace stdx::details {
 
-// Шаблонная функция, возвращающая пару позиций в строке с исходными данными, соотвествующих I-ому плейсхолдеру
-// Функция закомментирована, так как еще не реализованы классы, которые она использует
-/*
-template<int I, format_string fmt, fixed_string source>
+// Шаблонная функция, возвращающая пару позиций в строке с исходными данными, соответствующих I-ому плейсхолдеру
+template <std::size_t I, format_string fmt, fixed_string source>
 consteval auto get_current_source_for_parsing() {
     static_assert(I >= 0 && I < fmt.number_placeholders, "Invalid placeholder index");
 
-    constexpr auto to_sv = [](const auto& fs) {
+    constexpr auto to_sv = [](const auto &fs) {
         return std::string_view(fs.data, fs.size() - 1);
     };
 
     constexpr auto fmt_sv = to_sv(fmt.fmt);
     constexpr auto src_sv = to_sv(source);
-    constexpr auto& positions = fmt.placeholder_positions;
+    constexpr auto &positions = fmt.placeholder_positions;
 
     // Получаем границы текущего плейсхолдера в формате
     constexpr auto pos_i = positions[I];
@@ -62,17 +61,23 @@ consteval auto get_current_source_for_parsing() {
         constexpr auto pos = src_sv.find(sep, src_start);
         return pos != std::string_view::npos ? pos : src_sv.size();
     }();
+
     return std::pair{src_start, src_end};
 }
-*/
 
-// Реализуйте семейство функция parse_value
+template <fixed_string sval, typename T>
+consteval T parse_value() {
+    return static_cast<T>(std::stoi(sval.data));
+}
 
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
 
-// здесь ваш код
-void parse_input() {  // поменяйте сигнатуру
-    // здесь ваш код
+template <std::size_t I, format_string fmt, fixed_string source, typename T>
+consteval T parse_input() {
+    return T{42};
+//    constexpr auto [b, e] = get_current_source_for_parsing<I, fmt, source>();
+//    constexpr auto sval = fixed_string{source.data + b, source.data + e};
+//    return parse_value<sval, T>();
 }
 
 } // namespace stdx::details

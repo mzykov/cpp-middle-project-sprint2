@@ -9,19 +9,19 @@
 namespace stdx::details {
 
 // Шаблонный класс для хранения форматирующей строчки и ее особенностей
-template<fixed_string fmt>
+template<fixed_string str>
 class format_string {
 public:
-    constexpr static fixed_string format = fmt;
+    static constexpr fixed_string fmt = str;
 
     consteval std::expected<std::size_t, parse_error> get_number_placeholders();
-    constexpr static std::size_t number_placeholders = get_number_placeholders();
+    static constexpr std::size_t number_placeholders = get_number_placeholders();
 
     template<std::size_t Size>
     consteval std::array<std::pair<std::size_t, std::size_t>, Size> get_placeholder_positions();
 
     template<std::size_t Size = number_placeholders>
-    constexpr static std::array<std::pair<std::size_t, std::size_t>, Size> placeholder_positions = get_placeholder_positions<Size>();
+    static constexpr std::array<std::pair<std::size_t, std::size_t>, Size> placeholder_positions = get_placeholder_positions<Size>();
 };
 
 // Пользовательский литерал
@@ -31,7 +31,6 @@ constexpr format_string<str> operator""_fs() {
 }
 
 // Функция для получения количества плейсхолдеров и проверки корректности формирующей строки
-// Функция закомментирована, так как еще не реализованы классы, которые она использует
 template<fixed_string fmt>
 consteval std::expected<std::size_t, parse_error> format_string<fmt>::get_number_placeholders() {
     constexpr std::size_t N = fmt.size();
@@ -68,7 +67,7 @@ consteval std::expected<std::size_t, parse_error> format_string<fmt>::get_number
 
             // Проверяем допустимые спецификаторы
             const char spec = fmt.data[pos];
-            constexpr char valid_specs[] = {'d', 'u', 'f', 's'};
+            constexpr char valid_specs[] = {'d', 'u', 's'};
             bool valid = false;
 
             for (const char s : valid_specs) {
