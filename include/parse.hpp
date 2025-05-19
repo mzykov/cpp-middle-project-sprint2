@@ -65,19 +65,37 @@ consteval auto get_current_source_for_parsing() {
     return std::pair{src_start, src_end};
 }
 
-template <fixed_string sval, typename T>
+template <fixed_string sval, std::integral T>
 consteval T parse_value() {
-    return static_cast<T>(std::stoi(sval.data));
+    T res = 0, sign = 1;
+    std::size_t i = 0;
+
+    if constexpr(std::is_signed<T>::value) {
+        if (sval.size() > 0 && sval.data[0] == '-') {
+            sign = -1;
+            i = 1;
+        }
+    }
+
+    for (; i < sval.size(); ++i) {
+        res = res * 10 + static_cast<T>(sval.data[i] - '0');
+    }
+
+    return static_cast<T>(sign * res);
+}
+
+template <fixed_string sval, typename = std::string_view>
+consteval std::string_view parse_value() {
+    return std::string_view(sval.data, sval.size());
 }
 
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
-
 template <std::size_t I, format_string fmt, fixed_string source, typename T>
 consteval T parse_input() {
-    return T{42};
-//    constexpr auto [b, e] = get_current_source_for_parsing<I, fmt, source>();
-//    constexpr auto sval = fixed_string{source.data + b, source.data + e};
-//    return parse_value<sval, T>();
+    constexpr auto src = get_current_source_for_parsing<I, fmt, source>();
+    constexpr std::size_t b = std::get<0>(src);
+    constexpr std::size_t e = std::get<1>(src);
+    return parse_value<fixed_string<e - b>{source.data + b, source.data + e}, T>();
 }
 
 } // namespace stdx::details
