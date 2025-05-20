@@ -9,7 +9,7 @@
 namespace stdx::details {
 
 // Шаблонный класс для хранения форматирующей строчки и ее особенностей
-template<fixed_string str>
+template <fixed_string str>
 class format_string {
 public:
     static constexpr fixed_string fmt = str;
@@ -22,7 +22,7 @@ public:
 };
 
 // Функция для получения количества плейсхолдеров и проверки корректности формирующей строки
-template<fixed_string str>
+template <fixed_string str>
 consteval std::expected<std::size_t, parse_error> format_string<str>::get_number_placeholders() {
     constexpr std::size_t N = str.size();
 
@@ -91,7 +91,7 @@ constexpr format_string<str> operator""_fs() {
 }
 
 // Функция для получения позиций плейсхолдеров
-template<fixed_string str>
+template <fixed_string str>
 consteval std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders> format_string<str>::get_placeholder_positions() {
     std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders> result;
     constexpr std::size_t size = str.size() - 1; // -1 для игнорирования нуль-терминатора

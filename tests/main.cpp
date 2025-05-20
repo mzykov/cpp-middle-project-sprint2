@@ -124,5 +124,20 @@ int main() {
         // Then
         static_assert(res.values<int32_t>() == -2147483648);
     }
+    {	// 12.
+        // Given
+        constexpr auto fmt = stdx::details::format_string<"{} {} {} {} {}">{};
+        constexpr auto src = stdx::details::fixed_string{"-2147483648 2147483647 00 -01 18446744073709551615"};
+
+        // When
+        constexpr auto res = stdx::scan<fmt, src, int32_t, int32_t, uint8_t, int8_t, uint64_t>();
+
+        // Then
+        static_assert(res.values<0>() == -2147483648);
+        static_assert(res.values<1>() == 2147483647);
+        static_assert(res.values<2>() == 0);
+        static_assert(res.values<3>() == -1);
+        static_assert(res.values<4>() == 18446744073709551615UL);
+    }
     return 0;
 }

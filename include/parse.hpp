@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <concepts>
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -85,13 +86,13 @@ consteval T parse_value() {
 
         if (sign > 0) {
             if (res > limit / 10 || res * 10 > limit - digit) {
-                throw std::out_of_range("Positive integer overflow");
+                throw std::overflow_error{"Positive integer overflow"};
             }
             res = res * 10 + digit;
         }
         else {
             if (res < limit / 10 || res * 10 < limit + digit) {
-                throw std::out_of_range("Negative integer overflow");
+                throw std::overflow_error{"Negative integer overflow"};
             }
             res = res * 10 - digit;
         }
@@ -111,10 +112,27 @@ concept fmt_types = std::same_as<T, std::string_view> || std::is_integral<T>::va
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
 template <std::size_t I, format_string fmt, fixed_string source, fmt_types T>
 consteval T parse_input() {
+    constexpr std::size_t fmt_b = std::get<0>(fmt.placeholder_positions[I]);
+    constexpr std::size_t fmt_e = std::get<1>(fmt.placeholder_positions[I]);
+    constexpr auto spec = fixed_string<fmt_e - fmt_b>{ fmt.fmt.data + fmt_b, fmt.fmt.data + fmt_e };
+
+    if constexpr(spec.size() > 2) {
+        if constexpr(spec.data[2] == 'd') {
+            static_assert(std::is_integral<T>::value && std::is_signed<T>::value, "Type meets the ‘%d’ specifier");
+        }
+        else if constexpr(spec.data[2] == 'u') {
+            static_assert(std::is_integral<T>::value && !std::is_signed<T>::value, "Type meets the ‘%u’ specifier");
+        }
+        else if constexpr(spec.data[2] == 's') {
+            static_assert(std::same_as<T, std::string_view>, "Type meets the ‘%s’ specifier");
+        }
+    }
+
     constexpr auto src = get_current_source_for_parsing<I, fmt, source>();
-    constexpr std::size_t b = std::get<0>(src);
-    constexpr std::size_t e = std::get<1>(src);
-    return parse_value<fixed_string<e - b>{ source.data + b, source.data + e }, T>();
+    constexpr std::size_t src_b = std::get<0>(src);
+    constexpr std::size_t src_e = std::get<1>(src);
+
+    return parse_value<fixed_string<src_e - src_b>{ source.data + src_b, source.data + src_e }, T>();
 }
 
 } // namespace stdx::details
