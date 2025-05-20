@@ -69,7 +69,7 @@ consteval std::expected<std::size_t, parse_error> format_string<str>::get_number
             }
 
             if (!valid) {
-                return std::unexpected(parse_error{"Invalid specifier."});
+                return std::unexpected(parse_error{"Invalid specifier"});
             }
             ++pos;
         }

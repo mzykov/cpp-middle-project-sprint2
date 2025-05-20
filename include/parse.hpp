@@ -2,9 +2,11 @@
 
 #include <charconv>
 #include <concepts>
+#include <limits>
 #include <optional>
-#include <system_error>
+#include <stdexcept>
 #include <string>
+#include <system_error>
 
 #include "format_string.hpp"
 #include "types.hpp"
@@ -67,21 +69,35 @@ consteval auto get_current_source_for_parsing() {
 
 template <fixed_string sval, std::integral T>
 consteval T parse_value() {
-    T res = 0, sign = 1;
+    T res = 0, sign = 1, limit = std::numeric_limits<T>::max();
     std::size_t i = 0;
 
     if constexpr(std::is_signed<T>::value) {
         if (sval.size() > 0 && sval.data[0] == '-') {
             sign = -1;
             i = 1;
+            limit = std::numeric_limits<T>::min();
         }
     }
 
     for (; i < sval.size(); ++i) {
-        res = res * 10 + static_cast<T>(sval.data[i] - '0');
+        T digit = static_cast<T>(sval.data[i] - '0');
+
+        if (sign > 0) {
+            if (res > limit / 10 || res * 10 > limit - digit) {
+                throw std::out_of_range("Positive integer overflow");
+            }
+            res = res * 10 + digit;
+        }
+        else {
+            if (res < limit / 10 || res * 10 < limit + digit) {
+                throw std::out_of_range("Negative integer overflow");
+            }
+            res = res * 10 - digit;
+        }
     }
 
-    return static_cast<T>(sign * res);
+    return res;
 }
 
 template <fixed_string sval, typename = std::string_view>
@@ -89,13 +105,16 @@ consteval std::string_view parse_value() {
     return std::string_view(sval.data, sval.size());
 }
 
+template <typename T>
+concept fmt_types = std::same_as<T, std::string_view> || std::is_integral<T>::value;
+
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
-template <std::size_t I, format_string fmt, fixed_string source, typename T>
+template <std::size_t I, format_string fmt, fixed_string source, fmt_types T>
 consteval T parse_input() {
     constexpr auto src = get_current_source_for_parsing<I, fmt, source>();
     constexpr std::size_t b = std::get<0>(src);
     constexpr std::size_t e = std::get<1>(src);
-    return parse_value<fixed_string<e - b>{source.data + b, source.data + e}, T>();
+    return parse_value<fixed_string<e - b>{ source.data + b, source.data + e }, T>();
 }
 
 } // namespace stdx::details

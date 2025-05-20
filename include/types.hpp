@@ -41,6 +41,16 @@ struct parse_error : fixed_string<64> {};
 template <typename... Ts>
 struct scan_result {
     std::tuple<Ts...> data;
+
+    template <std::size_t I>
+    consteval auto values() const {
+        return std::get<I>(data);
+    }
+
+    template <typename T>
+    consteval auto values() const {
+        return std::get<T>(data);
+    }
 };
 
 } // namespace stdx::details
