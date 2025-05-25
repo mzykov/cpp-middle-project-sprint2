@@ -3,9 +3,9 @@
 #include <charconv>
 #include <concepts>
 #include <cstdint>
+#include <expected>
 #include <limits>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <system_error>
 
@@ -69,7 +69,7 @@ consteval auto get_current_source_for_parsing() {
 }
 
 template <fixed_string sval, std::integral T>
-consteval T parse_value() {
+consteval std::expected<T, parse_error> parse_value() {
     T res = 0, sign = 1, limit = std::numeric_limits<T>::max();
     std::size_t i = 0;
 
@@ -86,13 +86,13 @@ consteval T parse_value() {
 
         if (sign > 0) {
             if (res > limit / 10 || res * 10 > limit - digit) {
-                throw std::overflow_error{"Positive integer overflow"};
+                return std::unexpected(parse_error{"Positive integer overflow"});
             }
             res = res * 10 + digit;
         }
         else {
             if (res < limit / 10 || res * 10 < limit + digit) {
-                throw std::overflow_error{"Negative integer overflow"};
+                return std::unexpected(parse_error{"Negative integer overflow"});
             }
             res = res * 10 - digit;
         }
@@ -102,7 +102,7 @@ consteval T parse_value() {
 }
 
 template <fixed_string sval, typename = std::string_view>
-consteval std::string_view parse_value() {
+consteval std::expected<std::string_view, parse_error> parse_value() {
     return std::string_view(sval.data, sval.size());
 }
 
@@ -132,7 +132,7 @@ consteval T parse_input() {
     constexpr std::size_t src_b = std::get<0>(src);
     constexpr std::size_t src_e = std::get<1>(src);
 
-    return parse_value<fixed_string<src_e - src_b>{ source.data + src_b, source.data + src_e }, T>();
+    return *parse_value<fixed_string<src_e - src_b>{ source.data + src_b, source.data + src_e }, T>();
 }
 
 } // namespace stdx::details

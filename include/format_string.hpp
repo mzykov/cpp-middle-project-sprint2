@@ -23,7 +23,9 @@ public:
 
 // Функция для получения количества плейсхолдеров и проверки корректности формирующей строки
 template <fixed_string str>
-consteval std::expected<std::size_t, parse_error> format_string<str>::get_number_placeholders() {
+consteval std::expected<std::size_t, parse_error>
+format_string<str>::get_number_placeholders()
+{
     constexpr std::size_t N = str.size();
 
     if (!N)
