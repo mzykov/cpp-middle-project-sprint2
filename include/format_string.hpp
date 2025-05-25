@@ -84,15 +84,11 @@ consteval std::expected<std::size_t, parse_error> format_string<str>::get_number
     return placeholder_count;
 }
 
-// Пользовательский литерал
-template <fixed_string str>
-constexpr format_string<str> operator""_fs() {
-    return format_string<str>{};
-}
-
 // Функция для получения позиций плейсхолдеров
 template <fixed_string str>
-consteval std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders> format_string<str>::get_placeholder_positions() {
+consteval std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders>
+format_string<str>::get_placeholder_positions()
+{
     std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders> result;
     constexpr std::size_t size = str.size() - 1; // -1 для игнорирования нуль-терминатора
 
@@ -125,3 +121,13 @@ consteval std::array<std::pair<std::size_t, std::size_t>, format_string<str>::nu
 }
 
 } // namespace stdx::details
+
+namespace stdx::details::literals {
+
+// Пользовательский литерал
+template <fixed_string str>
+constexpr format_string<str> operator""_fs() {
+    return format_string<str>{};
+}
+
+} // stdx::details::literals
