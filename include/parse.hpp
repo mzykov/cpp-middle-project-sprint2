@@ -82,6 +82,9 @@ consteval std::expected<T, parse_error> parse_value() {
     }
 
     for (; i < sval.size(); ++i) {
+        if (sval.data[i] == '\0')
+            break;
+
         T digit = static_cast<T>(sval.data[i] - '0');
 
         if (sign > 0) {
@@ -131,8 +134,10 @@ consteval T parse_input() {
     constexpr auto src = get_current_source_for_parsing<I, fmt, source>();
     constexpr std::size_t src_b = std::get<0>(src);
     constexpr std::size_t src_e = std::get<1>(src);
+    constexpr auto source_data_b = source.data + src_b;
+    constexpr auto source_data_e = source.data + src_e;
 
-    return *parse_value<fixed_string<src_e - src_b>{ source.data + src_b, source.data + src_e }, T>();
+    return *parse_value<fixed_string<src_e - src_b>{ source_data_b, source_data_e }, T>();
 }
 
 } // namespace stdx::details

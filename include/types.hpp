@@ -14,7 +14,7 @@ struct fixed_string {
     constexpr fixed_string(const char (&str)[N]) {
         std::copy_n(str, N, data);
     }
-    template<std::size_t Size, typename = typename std::enable_if<(Size < N)>::type>
+    template <std::size_t Size, typename = typename std::enable_if<(Size < N)>::type>
     constexpr fixed_string(const char (&str)[Size]) {
         std::copy_n(str, Size, data);
         std::fill(data + Size, data + N, '\0');
@@ -25,6 +25,7 @@ struct fixed_string {
                 data[i] = *(b + i);
             } else {
                 data[i] = '\0';
+                break;
             }
         }
     }
