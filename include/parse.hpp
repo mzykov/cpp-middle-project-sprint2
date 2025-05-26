@@ -2,7 +2,11 @@
 
 #include <charconv>
 #include <concepts>
+#include <cstdint>
+#include <expected>
+#include <limits>
 #include <optional>
+#include <string>
 #include <system_error>
 
 #include "format_string.hpp"
@@ -10,20 +14,18 @@
 
 namespace stdx::details {
 
-// Шаблонная функция, возвращающая пару позиций в строке с исходными данными, соотвествующих I-ому плейсхолдеру
-// Функция закомментирована, так как еще не реализованы классы, которые она использует
-/*
-template<int I, format_string fmt, fixed_string source>
+// Шаблонная функция, возвращающая пару позиций в строке с исходными данными, соответствующих I-ому плейсхолдеру
+template <std::size_t I, format_string fmt, fixed_string source>
 consteval auto get_current_source_for_parsing() {
     static_assert(I >= 0 && I < fmt.number_placeholders, "Invalid placeholder index");
 
-    constexpr auto to_sv = [](const auto& fs) {
+    constexpr auto to_sv = [](const auto &fs) {
         return std::string_view(fs.data, fs.size() - 1);
     };
 
     constexpr auto fmt_sv = to_sv(fmt.fmt);
     constexpr auto src_sv = to_sv(source);
-    constexpr auto& positions = fmt.placeholder_positions;
+    constexpr auto &positions = fmt.placeholder_positions;
 
     // Получаем границы текущего плейсхолдера в формате
     constexpr auto pos_i = positions[I];
@@ -62,17 +64,80 @@ consteval auto get_current_source_for_parsing() {
         constexpr auto pos = src_sv.find(sep, src_start);
         return pos != std::string_view::npos ? pos : src_sv.size();
     }();
+
     return std::pair{src_start, src_end};
 }
-*/
 
-// Реализуйте семейство функция parse_value
+template <fixed_string sval, std::integral T>
+consteval std::expected<T, parse_error> parse_value() {
+    T res = 0, sign = 1, limit = std::numeric_limits<T>::max();
+    std::size_t i = 0;
+
+    if constexpr(std::is_signed<T>::value) {
+        if (sval.size() > 0 && sval.data[0] == '-') {
+            sign = -1;
+            i = 1;
+            limit = std::numeric_limits<T>::min();
+        }
+    }
+
+    for (; i < sval.size(); ++i) {
+        if (sval.data[i] == '\0')
+            break;
+
+        T digit = static_cast<T>(sval.data[i] - '0');
+
+        if (sign > 0) {
+            if (res > limit / 10 || res * 10 > limit - digit) {
+                return std::unexpected(parse_error{"Positive integer overflow"});
+            }
+            res = res * 10 + digit;
+        }
+        else {
+            if (res < limit / 10 || res * 10 < limit + digit) {
+                return std::unexpected(parse_error{"Negative integer overflow"});
+            }
+            res = res * 10 - digit;
+        }
+    }
+
+    return res;
+}
+
+template <fixed_string sval, typename = std::string_view>
+consteval std::expected<std::string_view, parse_error> parse_value() {
+    return std::string_view(sval.data, sval.size());
+}
+
+template <typename T>
+concept fmt_types = std::same_as<T, std::string_view> || std::is_integral<T>::value;
 
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
+template <std::size_t I, format_string fmt, fixed_string source, fmt_types T>
+consteval T parse_input() {
+    constexpr std::size_t fmt_b = std::get<0>(fmt.placeholder_positions[I]);
+    constexpr std::size_t fmt_e = std::get<1>(fmt.placeholder_positions[I]);
+    constexpr auto spec = fixed_string<fmt_e - fmt_b>{ fmt.fmt.data + fmt_b, fmt.fmt.data + fmt_e };
 
-// здесь ваш код
-void parse_input() {  // поменяйте сигнатуру
-    // здесь ваш код
+    if constexpr(spec.size() > 2) {
+        if constexpr(spec.data[2] == 'd') {
+            static_assert(std::is_integral<T>::value && std::is_signed<T>::value, "Type meets the ‘%d’ specifier");
+        }
+        else if constexpr(spec.data[2] == 'u') {
+            static_assert(std::is_integral<T>::value && !std::is_signed<T>::value, "Type meets the ‘%u’ specifier");
+        }
+        else if constexpr(spec.data[2] == 's') {
+            static_assert(std::same_as<T, std::string_view>, "Type meets the ‘%s’ specifier");
+        }
+    }
+
+    constexpr auto src = get_current_source_for_parsing<I, fmt, source>();
+    constexpr std::size_t src_b = std::get<0>(src);
+    constexpr std::size_t src_e = std::get<1>(src);
+    constexpr auto source_data_b = source.data + src_b;
+    constexpr auto source_data_e = source.data + src_e;
+
+    return *parse_value<fixed_string<src_e - src_b>{ source_data_b, source_data_e }, T>();
 }
 
 } // namespace stdx::details

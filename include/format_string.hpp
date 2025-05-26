@@ -1,38 +1,39 @@
 #pragma once
 
+#include <array>
 #include <expected>
+#include <utility>
 
 #include "types.hpp"
 
 namespace stdx::details {
 
 // Шаблонный класс для хранения форматирующей строчки и ее особенностей
-// ваш код здесь
+template <fixed_string str>
 class format_string {
-    // ваш код здесь
+public:
+    static constexpr fixed_string fmt = str;
+
+    static consteval std::expected<std::size_t, parse_error> get_number_placeholders();
+    static constexpr std::size_t number_placeholders = *get_number_placeholders();
+
+    static consteval std::array<std::pair<std::size_t, std::size_t>, number_placeholders> get_placeholder_positions();
+    static constexpr std::array<std::pair<std::size_t, std::size_t>, number_placeholders> placeholder_positions = get_placeholder_positions();
 };
 
-// Пользовательский литерал
-/*
-ваш код здесь
-ваш код здесь operator"" _fs()  сигнатуру также поменяйте
-{
-ваш код здесь
-}
-*/
-
 // Функция для получения количества плейсхолдеров и проверки корректности формирующей строки
-// Функция закомментирована, так как еще не реализованы классы, которые она использует
-/*
-// Сделайте эту свободную функцию методом класса format_string
-template<fixed_string str>
-consteval std::expected<size_t, parse_error> get_number_placeholders() {
-    constexpr size_t N = str.size();
+template <fixed_string str>
+consteval std::expected<std::size_t, parse_error>
+format_string<str>::get_number_placeholders()
+{
+    constexpr std::size_t N = str.size();
+
     if (!N)
         return 0;
-    size_t placeholder_count = 0;
-    size_t pos = 0;
-    const size_t size = N - 1; // -1 для игнорирования нуль-терминатора
+
+    std::size_t placeholder_count = 0;
+    std::size_t pos = 0;
+    const std::size_t size = N - 1; // -1 для игнорирования нуль-терминатора
 
     while (pos < size) {
         // Пропускаем все символы до '{'
@@ -59,7 +60,7 @@ consteval std::expected<size_t, parse_error> get_number_placeholders() {
 
             // Проверяем допустимые спецификаторы
             const char spec = str.data[pos];
-            constexpr char valid_specs[] = {'d', 'u', 'f', 's'};
+            constexpr char valid_specs[] = {'d', 'u', 's'};
             bool valid = false;
 
             for (const char s : valid_specs) {
@@ -70,7 +71,7 @@ consteval std::expected<size_t, parse_error> get_number_placeholders() {
             }
 
             if (!valid) {
-                return std::unexpected(parse_error{"Invalid specifier."});
+                return std::unexpected(parse_error{"Invalid specifier"});
             }
             ++pos;
         }
@@ -84,13 +85,51 @@ consteval std::expected<size_t, parse_error> get_number_placeholders() {
 
     return placeholder_count;
 }
-*/
 
 // Функция для получения позиций плейсхолдеров
+template <fixed_string str>
+consteval std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders>
+format_string<str>::get_placeholder_positions()
+{
+    std::array<std::pair<std::size_t, std::size_t>, format_string<str>::number_placeholders> result;
+    constexpr std::size_t size = str.size() - 1; // -1 для игнорирования нуль-терминатора
 
-// ваш код здесь
-void get_placeholder_positions() {  // сигнатуру тоже нужно изменить
-    // ваш код здесь
+    std::size_t placeholder_num = 0;
+    std::size_t pos = 0;
+
+    while (pos < size) {
+        // Пропускаем все символы до '{'
+        if (str.data[pos] != '{') {
+            ++pos;
+            continue;
+        }
+
+        // Начало плейсхолдера
+        result[placeholder_num] = { 0, 0 };
+        std::get<0>(result[placeholder_num]) = pos;
+        ++pos;
+
+        // Проверка спецификатора формата
+        if (str.data[pos] == '%') {
+            pos += 2; // length("%d") = 2
+        }
+
+        std::get<1>(result[placeholder_num]) = pos;
+        ++placeholder_num;
+        ++pos;
+    }
+
+    return result;
 }
 
 } // namespace stdx::details
+
+namespace stdx::details::literals {
+
+// Пользовательский литерал
+template <fixed_string str>
+constexpr format_string<str> operator""_fs() {
+    return format_string<str>{};
+}
+
+} // stdx::details::literals
